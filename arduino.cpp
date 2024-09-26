@@ -1,19 +1,12 @@
-// C++ code
-//
 void setup()
 {
-  pinMode(13, OUTPUT);
-	Serial.begin(9600);
-  Serial.println("Hello Arduino");
+  pinMode(12, OUTPUT);
 }
 
 void loop()
 {
-	Serial.println("LED on");
-  digitalWrite(13, HIGH);
-
-  delay(1000); // Wait for 1000 millisecond(s)
-  Serial.println("LED off");
-  digitalWrite(13, LOW);
-  delay(1000); // Wait for 1000 millisecond(s)
+  digitalWrite(12, HIGH);
+  delay(1000);
+  digitalWrite(12, LOW);
+  delay(1000);
 }
