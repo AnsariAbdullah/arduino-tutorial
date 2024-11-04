@@ -1,69 +1,71 @@
-#define RED_LED 12
-#define YELL_LED 11
-#define GREEN_LED 10
+#define LED_1_PIN 12
+#define LED_2_PIN 11
+#define LED_3_PIN 10
+
 #define BUTTON_PIN 2
 
-unsigned long ledBlinkTime = millis();
-unsigned long blinkWait = 1000;
-unsigned long lastButtonStateChange = millis();
-unsigned long debounceTime = 50;
+unsigned long lastTimeLED1Blinked = millis();
+unsigned long blinkDelayLED1 = 1000;
+byte LED1State = LOW;
+
+unsigned long lastTimeButtonChanged = millis();
+unsigned long debounceDelay = 50;
 byte buttonState = LOW;
 
-int greenLEDState = LOW;
+int toggleLEDState = 1;
 
-int RED_LIGHT = HIGH;
-int YELL_LIGHT = LOW;
+void setup() {
+  pinMode(LED_1_PIN, OUTPUT);
+  pinMode(LED_2_PIN, OUTPUT);
+  pinMode(LED_3_PIN, OUTPUT);
 
-void setup()
-{
-  pinMode(RED_LED, OUTPUT);
-  pinMode(YELL_LED, OUTPUT);
-  pinMode(GREEN_LED, OUTPUT);
   pinMode(BUTTON_PIN, INPUT);
-  digitalWrite(RED_LED, RED_LIGHT);
+  buttonState = digitalRead(BUTTON_PIN);
 }
 
-void blinkLed (){
-  if(greenLEDState == LOW){
-    greenLEDState = HIGH;
-  }else{
-    greenLEDState = LOW;
-  }
-  digitalWrite(GREEN_LED, greenLEDState);
-}
-
-void toggleLEDs(){
-  if(buttonState == HIGH){
-    RED_LIGHT = LOW;
-    YELL_LIGHT = HIGH;
-    digitalWrite(RED_LED, RED_LIGHT);
-    digitalWrite(YELL_LED, YELL_LIGHT);
-  }else{
-    RED_LIGHT = HIGH;
-    YELL_LIGHT = LOW;
-    digitalWrite(RED_LED, RED_LIGHT);
-    digitalWrite(YELL_LED, YELL_LIGHT);
-
-  }
-}
-
-void loop()
+void blinkLED1()
 {
-  unsigned long timeNow = millis();
-  
-  //make LED blink every 1000 ms (1 sec)
-  if(timeNow - ledBlinkTime >= blinkWait){
-  	ledBlinkTime += blinkWait;
-    blinkLed();
+  if (LED1State == HIGH) {
+    LED1State = LOW;
   }
-  
-  //toggle LEDs on button press
-  if(timeNow - lastButtonStateChange > debounceTime){
-  	byte newButtonState = digitalRead(BUTTON_PIN);
-    if(newButtonState != buttonState){
-      lastButtonStateChange+= timeNow;
+  else {
+    LED1State = HIGH;
+  }
+  digitalWrite(LED_1_PIN, LED1State);  
+}
+
+void toggleOtherLEDs()
+{
+  if (toggleLEDState == 1) {
+    toggleLEDState = 2;
+    digitalWrite(LED_2_PIN, LOW);
+    digitalWrite(LED_3_PIN, HIGH);
+  }
+  else {
+    toggleLEDState = 1;
+    digitalWrite(LED_2_PIN, HIGH);
+    digitalWrite(LED_3_PIN, LOW);
+  }  
+}
+
+void loop() {
+  unsigned long timeNow = millis();
+
+  // blink LED1
+  if (timeNow - lastTimeLED1Blinked > blinkDelayLED1) {
+    lastTimeLED1Blinked += blinkDelayLED1;
+    blinkLED1();
+  }
+
+  // toggle LED 2-3
+  if (timeNow - lastTimeButtonChanged > debounceDelay) {
+    byte newButtonState = digitalRead(BUTTON_PIN);
+    if (newButtonState != buttonState) {
+      lastTimeButtonChanged = timeNow;
       buttonState = newButtonState;
-      toggleLEDs();
+      if (buttonState == HIGH) {
+        toggleOtherLEDs();
+      }
     }
-  } 
+  }
 }
