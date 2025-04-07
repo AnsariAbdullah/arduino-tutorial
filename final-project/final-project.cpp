@@ -1,6 +1,8 @@
 #define ECHO_PIN 3
 #define TRIGGER_PIN 4
 
+#define WARNING_LED_PIN 11
+
 // ultrasonic
 unsigned long lastTimeUltrasonicTrigger = millis();
 unsigned long ultrasonicTriggerDelay = 60;
@@ -11,6 +13,10 @@ volatile bool newDistanceAvailable = false;
 
 double previousDistance = 400.0;
 
+// warning LED
+unsigned long lastTimeWarningLEDBlinked = millis();
+unsigned long warningLEDDelay = 500;
+byte warningLEDState = LOW;
 
 void triggerUltrasonicSensor()
 {
@@ -44,10 +50,31 @@ void echoPinInterrupt()
   }
 }
 
+void toggleWarningLED()
+{
+  // if(warningLEDState == HIGH){
+  // 	warningLEDState = LOW;
+  // }else{
+  // 	warningLEDState = HIGH;
+  // }
+  warningLEDState = (warningLEDState == HIGH) ? LOW : HIGH;
+  digitalWrite(WARNING_LED_PIN, warningLEDState);
+}
+
+void setWarningLEDBlinkRateFromDistance(double distance)
+{
+  // distance is in cms - between 0 to 400
+  // blink rate is between 0 to 1600 ms
+  // therefore multiply distance by 400
+  warningLEDDelay = distance * 4;
+  Serial.println(warningLEDDelay);
+}
+
 void setup() {
   Serial.begin(115200);
   pinMode(ECHO_PIN, INPUT);
   pinMode(TRIGGER_PIN, OUTPUT);
+  pinMode(WARNING_LED_PIN, OUTPUT);
 
   attachInterrupt(digitalPinToInterrupt(ECHO_PIN),
                   echoPinInterrupt,
@@ -61,11 +88,16 @@ void loop() {
     lastTimeUltrasonicTrigger += ultrasonicTriggerDelay;
     triggerUltrasonicSensor();
   }
-  
+
+  if (timeNow - lastTimeWarningLEDBlinked > warningLEDDelay) {
+    lastTimeWarningLEDBlinked += warningLEDDelay;
+    toggleWarningLED();
+  }
 
   if (newDistanceAvailable) {
     newDistanceAvailable = false;
     double distance = getUltrasonicDistance();
-    Serial.println(distance);
+    setWarningLEDBlinkRateFromDistance(distance);
+    // Serial.println(distance);
   }
 }
