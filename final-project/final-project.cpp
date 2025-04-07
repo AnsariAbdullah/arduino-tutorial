@@ -4,6 +4,8 @@
 #define WARNING_LED_PIN 11
 #define ERROR_LED_PIN 12
 
+#define BUTTON_PIN 2
+
 #define LOCK_DISTANCE 10.0
 
 // ultrasonic
@@ -25,6 +27,11 @@ byte warningLEDState = LOW;
 unsigned long lastTimeErrorLEDBlinked = millis();
 unsigned long errorLEDDelay = 300;
 byte errorLEDState = LOW;
+
+// push button
+unsigned long lastTimeButtonChanged = millis();
+unsigned long buttonDebounceDelay = 50;
+byte buttonState;
 
 bool isLocked = false;
 
@@ -83,15 +90,26 @@ void setWarningLEDBlinkRateFromDistance(double distance)
   // blink rate is between 0 to 1600 ms
   // therefore multiply distance by 400
   warningLEDDelay = distance * 4;
-  Serial.println(warningLEDDelay);
+  // Serial.println(warningLEDDelay);
 }
 
 void lock()
 {
   if (!isLocked) {
+    // Serial.println("Locking");
     isLocked = true;
     warningLEDState = LOW;
     errorLEDState = LOW;
+  }
+}
+
+void unlock()
+{
+  if (isLocked) {
+    // Serial.println("Unlocking");
+    isLocked = false;
+    errorLEDState = LOW;
+    digitalWrite(ERROR_LED_PIN, errorLEDState);
   }
 }
 
@@ -101,6 +119,9 @@ void setup() {
   pinMode(TRIGGER_PIN, OUTPUT);
   pinMode(WARNING_LED_PIN, OUTPUT);
   pinMode(ERROR_LED_PIN, OUTPUT);
+  pinMode(BUTTON_PIN, INPUT);
+
+  buttonState = digitalRead(BUTTON_PIN);
 
   attachInterrupt(digitalPinToInterrupt(ECHO_PIN),
                   echoPinInterrupt,
@@ -115,6 +136,17 @@ void loop() {
       lastTimeErrorLEDBlinked += errorLEDDelay;
       toggleErrorLED();
       toggleWarningLED();
+    }
+
+    if (timeNow - lastTimeButtonChanged > buttonDebounceDelay) {
+      byte newButtonState = digitalRead(BUTTON_PIN);
+      if (newButtonState != buttonState) {
+        lastTimeButtonChanged = timeNow;
+        buttonState = newButtonState;
+        if (buttonState == LOW) { // released
+          unlock();
+        }
+      }
     }
   }
   else {
