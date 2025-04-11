@@ -1,3 +1,5 @@
+#include <LiquidCrystal.h>
+
 #define ECHO_PIN 3
 #define TRIGGER_PIN 4
 
@@ -6,7 +8,20 @@
 
 #define BUTTON_PIN 2
 
+// LDC display
+#define LCD_RS_PIN A5
+#define LCD_RE_PIN A4
+#define LCD_D4_PIN 6
+#define LCD_D5_PIN 7
+#define LCD_D6_PIN 8
+#define LCD_D7_PIN 9
+
+
 #define LOCK_DISTANCE 10.0
+
+// lcd
+LiquidCrystal lcd(LCD_RS_PIN, LCD_RE_PIN, LCD_D4_PIN,
+                  LCD_D5_PIN, LCD_D6_PIN, LCD_D7_PIN);
 
 // ultrasonic
 unsigned long lastTimeUltrasonicTrigger = millis();
@@ -115,6 +130,7 @@ void unlock()
 
 void setup() {
   Serial.begin(115200);
+  lcd.begin(16, 2);
   pinMode(ECHO_PIN, INPUT);
   pinMode(TRIGGER_PIN, OUTPUT);
   pinMode(WARNING_LED_PIN, OUTPUT);
@@ -126,6 +142,9 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(ECHO_PIN),
                   echoPinInterrupt,
                   CHANGE);
+  lcd.print("Initializing...");
+  delay(1000);
+  lcd.clear();
 }
 
 void loop() {
