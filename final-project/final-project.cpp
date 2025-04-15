@@ -18,6 +18,7 @@
 
 
 #define LOCK_DISTANCE 10.0
+#define WARNING_DISTANCE 50.0
 
 // lcd
 LiquidCrystal lcd(LCD_RS_PIN, LCD_RE_PIN, LCD_D4_PIN,
@@ -128,6 +129,29 @@ void unlock()
   }
 }
 
+void printDistanceOnLCD(double distance)
+{
+  if(isLocked){
+    lcd.setCursor(0,0);
+    lcd.print("!!! Obstacle !!!    ");
+    lcd.setCursor(0,1);
+    lcd.print("Press to unlock.    ");
+  }else{
+    lcd.setCursor(0,0);
+    lcd.print("Dist: ");
+    lcd.print(distance);
+    lcd.print(" cm     ");
+
+    lcd.setCursor(0, 1);
+    if(distance > WARNING_DISTANCE){
+      lcd.print("No obstacle.       ");
+    }else{
+      lcd.print("!! Warning !!       ");
+    }
+
+  }
+}
+
 void setup() {
   Serial.begin(115200);
   lcd.begin(16, 2);
@@ -184,6 +208,7 @@ void loop() {
     newDistanceAvailable = false;
     double distance = getUltrasonicDistance();
     setWarningLEDBlinkRateFromDistance(distance);
+    printDistanceOnLCD(distance);
     if (distance < LOCK_DISTANCE) {
       lock();
     }
