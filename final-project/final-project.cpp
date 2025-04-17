@@ -162,6 +162,31 @@ void printDistanceOnLCD(double distance)
   }
 }
 
+void handleIRCommand(long command)
+{
+	switch (command){
+		case IR_BUTTON_PLAY: {
+			unlock();
+			break;
+		}
+		case IR_BUTTON_OFF: {
+			break;
+		}
+		case IR_BUTTON_EQ: {
+			break;
+		}
+		case IR_BUTTON_UP: {
+			break;
+		}
+		case IR_BUTTON_DOWN: {
+			break;
+		}
+		default: {
+
+		}
+	}
+}
+
 void setup() {
   Serial.begin(115200);
   lcd.begin(16, 2);
@@ -218,7 +243,7 @@ void loop() {
 	if(IrReceiver.decode()){
 		IrReceiver.resume();
 		long command = IrReceiver.decodedIRData.command;
-		Serial.println(command);
+		handleIRCommand(command);
 	}
 
   if (newDistanceAvailable) {
