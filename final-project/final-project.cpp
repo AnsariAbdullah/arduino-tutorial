@@ -1,4 +1,7 @@
 #include <LiquidCrystal.h>
+#include <IRremote.h>
+
+#define IR_RECEIVE_PIN 5
 
 #define ECHO_PIN 3
 #define TRIGGER_PIN 4
@@ -19,6 +22,13 @@
 
 #define LOCK_DISTANCE 10.0
 #define WARNING_DISTANCE 50.0
+
+// IR button mapping
+#define IR_BUTTON_PLAY 5
+#define IR_BUTTON_OFF 0
+#define IR_BUTTON_EQ 13
+#define IR_BUTTON_UP 10
+#define IR_BUTTON_DOWN 8
 
 // lcd
 LiquidCrystal lcd(LCD_RS_PIN, LCD_RE_PIN, LCD_D4_PIN,
@@ -155,6 +165,7 @@ void printDistanceOnLCD(double distance)
 void setup() {
   Serial.begin(115200);
   lcd.begin(16, 2);
+	IrReceiver.begin(IR_RECEIVE_PIN);
   pinMode(ECHO_PIN, INPUT);
   pinMode(TRIGGER_PIN, OUTPUT);
   pinMode(WARNING_LED_PIN, OUTPUT);
@@ -203,6 +214,12 @@ void loop() {
     lastTimeUltrasonicTrigger += ultrasonicTriggerDelay;
     triggerUltrasonicSensor();
   }
+
+	if(IrReceiver.decode()){
+		IrReceiver.resume();
+		long command = IrReceiver.decodedIRData.command;
+		Serial.println(command);
+	}
 
   if (newDistanceAvailable) {
     newDistanceAvailable = false;
