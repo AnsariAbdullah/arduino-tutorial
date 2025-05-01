@@ -1,5 +1,6 @@
 #include <LiquidCrystal.h>
 #include <IRremote.h>
+#include <EEPROM.h>
 
 #define IR_RECEIVE_PIN 5
 
@@ -29,6 +30,11 @@
 #define IR_BUTTON_EQ 13
 #define IR_BUTTON_UP 10
 #define IR_BUTTON_DOWN 8
+
+#define DISTANCE_UNIT_CM 0
+#define DISTANCE_UNIT_IN 1
+#define CM_TO_INCHES 0.393701
+#define EEPROM_ADDRESS_DISTANCE_UNIT 50
 
 // lcd
 LiquidCrystal lcd(LCD_RS_PIN, LCD_RE_PIN, LCD_D4_PIN,
@@ -60,6 +66,8 @@ unsigned long buttonDebounceDelay = 50;
 byte buttonState;
 
 bool isLocked = false;
+
+int distanceUnit = DISTANCE_UNIT_CM;
 
 void triggerUltrasonicSensor()
 {
@@ -149,8 +157,13 @@ void printDistanceOnLCD(double distance)
   }else{
     lcd.setCursor(0,0);
     lcd.print("Dist: ");
-    lcd.print(distance);
-    lcd.print(" cm     ");
+    if(distanceUnit == DISTANCE_UNIT_IN){
+      lcd.print(distance * CM_TO_INCHES);
+      lcd.print(" in     ");
+    }else {
+      lcd.print(distance);
+      lcd.print(" cm     ");
+    }
 
     lcd.setCursor(0, 1);
     if(distance > WARNING_DISTANCE){
@@ -160,6 +173,16 @@ void printDistanceOnLCD(double distance)
     }
 
   }
+}
+
+void toggleDistanceUnit()
+{
+  if(distanceUnit == DISTANCE_UNIT_CM){
+    distanceUnit = DISTANCE_UNIT_IN;
+  }else{
+    distanceUnit = DISTANCE_UNIT_CM;
+  }
+  EEPROM.write(EEPROM_ADDRESS_DISTANCE_UNIT, distanceUnit);
 }
 
 void handleIRCommand(long command)
@@ -173,6 +196,7 @@ void handleIRCommand(long command)
 			break;
 		}
 		case IR_BUTTON_EQ: {
+      toggleDistanceUnit();
 			break;
 		}
 		case IR_BUTTON_UP: {
@@ -202,6 +226,13 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(ECHO_PIN),
                   echoPinInterrupt,
                   CHANGE);
+
+
+  distanceUnit = EEPROM.read(EEPROM_ADDRESS_DISTANCE_UNIT);
+  if(distanceUnit == 255){
+    distanceUnit = DISTANCE_UNIT_CM;
+  }
+
   lcd.print("Initializing...");
   delay(1000);
   lcd.clear();
