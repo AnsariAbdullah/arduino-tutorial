@@ -31,10 +31,15 @@
 #define IR_BUTTON_UP 10
 #define IR_BUTTON_DOWN 8
 
+// distance unit
 #define DISTANCE_UNIT_CM 0
 #define DISTANCE_UNIT_IN 1
 #define CM_TO_INCHES 0.393701
 #define EEPROM_ADDRESS_DISTANCE_UNIT 50
+
+// lcd mode
+#define LCD_MODE_DISTANCE 0
+#define LCD_MODE_SETTINGS 1
 
 // lcd
 LiquidCrystal lcd(LCD_RS_PIN, LCD_RE_PIN, LCD_D4_PIN,
@@ -68,6 +73,7 @@ byte buttonState;
 bool isLocked = false;
 
 int distanceUnit = DISTANCE_UNIT_CM;
+int lcdMode = LCD_MODE_DISTANCE;
 
 void triggerUltrasonicSensor()
 {
@@ -144,6 +150,7 @@ void unlock()
     isLocked = false;
     errorLEDState = LOW;
     digitalWrite(ERROR_LED_PIN, errorLEDState);
+    lcd.clear();
   }
 }
 
@@ -154,7 +161,8 @@ void printDistanceOnLCD(double distance)
     lcd.print("!!! Obstacle !!!    ");
     lcd.setCursor(0,1);
     lcd.print("Press to unlock.    ");
-  }else{
+  }
+  else if(lcdMode == LCD_MODE_DISTANCE){
     lcd.setCursor(0,0);
     lcd.print("Dist: ");
     if(distanceUnit == DISTANCE_UNIT_IN){
@@ -166,9 +174,11 @@ void printDistanceOnLCD(double distance)
     }
 
     lcd.setCursor(0, 1);
+    
     if(distance > WARNING_DISTANCE){
       lcd.print("No obstacle.       ");
-    }else{
+    }
+    else{
       lcd.print("!! Warning !!       ");
     }
 
@@ -185,6 +195,45 @@ void toggleDistanceUnit()
   EEPROM.write(EEPROM_ADDRESS_DISTANCE_UNIT, distanceUnit);
 }
 
+void toggleLCDScreen()
+{
+  switch(lcdMode){
+    case LCD_MODE_DISTANCE:{
+      lcdMode = LCD_MODE_SETTINGS;
+      break;
+    }
+    case LCD_MODE_SETTINGS: {
+      lcdMode = LCD_MODE_DISTANCE;
+      break;
+    }
+    default: {
+      lcdMode = LCD_MODE_DISTANCE;
+    }
+  }
+
+  lcd.clear();
+
+  if(lcdMode == LCD_MODE_SETTINGS){
+    lcd.setCursor(0, 0);
+    lcd.print("Press on OFF to");
+    lcd.setCursor(0, 1);
+    lcd.print("reset settings.");
+  }
+}
+
+void resetSettingsToDefault()
+{
+  if(lcdMode == LCD_MODE_SETTINGS){
+    distanceUnit = DISTANCE_UNIT_CM;
+    EEPROM.write(EEPROM_ADDRESS_DISTANCE_UNIT, distanceUnit);
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Settings have");
+    lcd.setCursor(0, 1);
+    lcd.print("been reset.");
+  }
+}
+
 void handleIRCommand(long command)
 {
 	switch (command){
@@ -193,6 +242,7 @@ void handleIRCommand(long command)
 			break;
 		}
 		case IR_BUTTON_OFF: {
+      resetSettingsToDefault();
 			break;
 		}
 		case IR_BUTTON_EQ: {
@@ -200,9 +250,11 @@ void handleIRCommand(long command)
 			break;
 		}
 		case IR_BUTTON_UP: {
+      toggleLCDScreen();
 			break;
 		}
 		case IR_BUTTON_DOWN: {
+      toggleLCDScreen();
 			break;
 		}
 		default: {
