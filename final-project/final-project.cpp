@@ -9,8 +9,11 @@
 
 #define WARNING_LED_PIN 11
 #define ERROR_LED_PIN 12
+#define LIGHT_LED_PIN 10
 
 #define BUTTON_PIN 2
+
+#define PHOTORESISTOR_PIN A0
 
 // LDC display
 #define LCD_RS_PIN A5
@@ -40,6 +43,7 @@
 // lcd mode
 #define LCD_MODE_DISTANCE 0
 #define LCD_MODE_SETTINGS 1
+#define LCD_MODE_LUMINOSITY 2
 
 // lcd
 LiquidCrystal lcd(LCD_RS_PIN, LCD_RE_PIN, LCD_D4_PIN,
@@ -64,6 +68,10 @@ byte warningLEDState = LOW;
 unsigned long lastTimeErrorLEDBlinked = millis();
 unsigned long errorLEDDelay = 300;
 byte errorLEDState = LOW;
+
+// photoresistor
+unsigned long lastTimeReadLuminosity = millis();
+unsigned long readLuminosityDelay = 100;
 
 // push button
 unsigned long lastTimeButtonChanged = millis();
@@ -195,15 +203,19 @@ void toggleDistanceUnit()
   EEPROM.write(EEPROM_ADDRESS_DISTANCE_UNIT, distanceUnit);
 }
 
-void toggleLCDScreen()
+void toggleLCDScreen(bool next)
 {
   switch(lcdMode){
     case LCD_MODE_DISTANCE:{
-      lcdMode = LCD_MODE_SETTINGS;
+      lcdMode = (next) ? LCD_MODE_SETTINGS : LCD_MODE_LUMINOSITY;
       break;
     }
     case LCD_MODE_SETTINGS: {
-      lcdMode = LCD_MODE_DISTANCE;
+      lcdMode = (next) ? LCD_MODE_LUMINOSITY : LCD_MODE_DISTANCE;
+      break;
+    }
+    case LCD_MODE_LUMINOSITY : {
+      lcdMode = (next) ? LCD_MODE_DISTANCE : LCD_MODE_SETTINGS;
       break;
     }
     default: {
@@ -250,17 +262,34 @@ void handleIRCommand(long command)
 			break;
 		}
 		case IR_BUTTON_UP: {
-      toggleLCDScreen();
+      toggleLCDScreen(true);
 			break;
 		}
 		case IR_BUTTON_DOWN: {
-      toggleLCDScreen();
+      toggleLCDScreen(false);
 			break;
 		}
 		default: {
 
 		}
 	}
+}
+
+void setLightLEDFromLuminosity(int luminosity)
+{
+  byte brightness = 255 - luminosity / 4;
+  analogWrite(LIGHT_LED_PIN, brightness);
+}
+
+void printLuminosityOnLCD(int luminosity)
+{
+  if(!isLocked && lcdMode == LCD_MODE_LUMINOSITY){
+    lcd.setCursor(0, 0);
+    lcd.print("Luminosity: ");
+    lcd.print(luminosity);
+    lcd.print("    ");
+
+  }
 }
 
 void setup() {
@@ -271,6 +300,7 @@ void setup() {
   pinMode(TRIGGER_PIN, OUTPUT);
   pinMode(WARNING_LED_PIN, OUTPUT);
   pinMode(ERROR_LED_PIN, OUTPUT);
+  pinMode(LIGHT_LED_PIN, OUTPUT);
   pinMode(BUTTON_PIN, INPUT);
 
   buttonState = digitalRead(BUTTON_PIN);
@@ -338,5 +368,12 @@ void loop() {
       lock();
     }
     // Serial.println(distance);
+  }
+
+  if(timeNow - lastTimeReadLuminosity > readLuminosityDelay){
+    lastTimeReadLuminosity += readLuminosityDelay;
+    int luminosity = analogRead(PHOTORESISTOR_PIN);
+    setLightLEDFromLuminosity(luminosity);
+    printLuminosityOnLCD(luminosity);
   }
 }
